@@ -2,6 +2,7 @@
 #include <stdio.h>
 #include <assert.h>
 #include <unistd.h>
+#include <limits.h>
 #include "myAllocator.h"
 
 /*
@@ -191,6 +192,18 @@ BlockPrefix_t *findFirstFit(size_t s) {	/* find first block with usable space > 
     return growArena(s);
 }
 
+BlockPrefix_t *findNextFit(size_t s) {	/* find first block with usable space > s */
+    BlockPrefix_t *p = arenaBegin;
+    while (p) {
+    if(p->allocated){
+        if (!p->allocated && computeUsableSpace(p) >= s){
+            return p;
+        }
+    }
+	p = getNextPrefix(p);
+    }
+    return growArena(s);
+}
 /* conversion between blocks & regions (offset of prefixSize */
 
 BlockPrefix_t *regionToPrefix(void *r) {
@@ -233,6 +246,30 @@ void *firstFitAllocRegion(size_t s) {
   
 }
 
+void *nextFitAllocRegion(size_t s){ /* number of bytes of memory to allocate */
+  size_t asize = align8(s);
+  BlockPrefix_t *p;
+  if (arenaBegin == 0)		/* arena uninitialized? */
+    initializeArena();
+  p = findNextFit(s);		/* find a block */  
+  if(p){
+    size_t availSize = computeUsableSpace(p);
+    while(asize < s){
+        if(availSize >= (asize + prefixSize + suffixSize + 8)){
+            void *freeSliverStart = (void *)p + prefixSize + suffixSize + asize;
+            void *freeSliverEnd = computeNextPrefixAddr(p);
+            makeFreeBlock(freeSliverStart, freeSliverEnd - freeSliverStart);
+            makeFreeBlock(p, freeSliverStart - (void *)p); /* piece being allocated */          
+        }
+    }
+    p->allocated = 1;		/* mark as allocated */
+    return prefixToRegion(p);	/* convert to *region */    
+  } else {			/* failed */
+    return (void *)0;
+  }
+}
+    
+
 void freeRegion(void *r) {
     if (r != 0) {
 	BlockPrefix_t *p = regionToPrefix(r); /* convert to block */
@@ -240,7 +277,6 @@ void freeRegion(void *r) {
 	coalesce(p);
     }
 }
-
 
 /*
   like realloc(r, newSize), resizeRegion will return a new region of size
@@ -269,4 +305,5 @@ void *resizeRegion(void *r, size_t newSize) {
     return (void *)n;
   }
 }
+
 
