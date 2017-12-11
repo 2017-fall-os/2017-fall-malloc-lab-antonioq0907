@@ -1,3 +1,4 @@
+
 #ifndef myAllocator_H
 #define myAllocator_H
 
@@ -13,7 +14,6 @@ typedef struct BlockSuffix_s {
 
 void arenaCheck(void);
 void *firstFitAllocRegion(size_t s);
-void *nextFitAllocRegion(size_t s);
 void freeRegion(void *r);
 void *resizeRegion(void *r, size_t newSize);
 size_t computeUsableSpace(BlockPrefix_t *p);

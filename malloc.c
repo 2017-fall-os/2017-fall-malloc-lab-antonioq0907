@@ -12,6 +12,8 @@ void *malloc(size_t NBYTES) {
   return firstFitAllocRegion(NBYTES);
 }
 
+
+
 void *realloc(void *APTR, size_t NBYTES) {
   return resizeRegion(APTR, NBYTES);
 }
@@ -45,5 +47,3 @@ char *strdup(const char *s) {
   strcpy(p, s);
   return p;
 } 
-
-
